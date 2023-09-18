@@ -9,6 +9,7 @@ from selenium.webdriver.support import expected_conditions as EC
 username = 'your_username'
 password = 'your_password'
 max_tweets = 100
+topic = 'python'
 
 def scroll_down(browser):
     browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -39,7 +40,7 @@ with webdriver.Firefox(options=options) as browser:
     wait.until(EC.presence_of_element_located((By.XPATH, '//input[@enterkeyhint="search"]')))
 
     search_input = browser.find_element(By.XPATH, '//input[@enterkeyhint="search"]')
-    search_input.send_keys('python')
+    search_input.send_keys(topic)
     search_input.send_keys(Keys.RETURN)
 
     current_tweets = 0
