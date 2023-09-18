@@ -1,72 +1,77 @@
-import sqlite3
+import time
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-# Function to create a SQLite database and table
-def create_database():
-    conn = sqlite3.connect('matches.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS matches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT,
-            home_team TEXT,
-            score TEXT,
-            away_team TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+username = 'your_username'
+password = 'your_password'
+max_tweets = 100
 
-# Function to insert data into the database
-def insert_data(date, home_team, score, away_team):
-    conn = sqlite3.connect('matches.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO matches (date, home_team, score, away_team)
-        VALUES (?, ?, ?, ?)
-    ''', (date, home_team, score, away_team))
-    conn.commit()
-    conn.close()
+def scroll_down(browser):
+    browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(2)
 
-# Start the web scraping process
-url = 'https://www.adamchoi.co.uk/overs/detailed'
-driver = webdriver.Firefox()
-driver.get(url)
+options = webdriver.FirefoxOptions()
+options.add_argument('--headless')
 
-wait = WebDriverWait(driver, 10)
+with webdriver.Firefox(options=options) as browser:
+    url = 'https://twitter.com/'
+    browser.get(url)
 
-all_matches_button = driver.find_element(By.XPATH, '//label[@analytics-event="All matches"]')
-all_matches_button.click()
+    wait = WebDriverWait(browser, 10)
 
-# Initialize the SQLite database
-create_database()
+    login_button = wait.until(EC.presence_of_element_located((By.XPATH, '//a[@href="/login"]')))
+    login_button.click()
 
-while True:
-    date = []
-    home_team = []
-    score = []
-    away_team = []
+    username_input = wait.until(EC.presence_of_element_located((By.XPATH, './/input[@name="text"]')))
+    username_input.send_keys(username)
+    username_input.send_keys(Keys.RETURN)
 
-    matches = driver.find_elements(By.XPATH, '//tr[starts-with(@data-ng-repeat, "match in")]')
+    time.sleep(3)
 
-    for match in matches:
-        date.append(match.find_element(By.XPATH, './td[1]').text)
-        home_team.append(match.find_element(By.XPATH, './td[2]').text)
-        score.append(match.find_element(By.XPATH, './td[3]').text)
-        away_team.append(match.find_element(By.XPATH, './td[4]').text)
+    password_input = wait.until(EC.presence_of_element_located((By.XPATH, './/input[@name="password"]')))
+    password_input.send_keys(password)
+    password_input.send_keys(Keys.RETURN)
 
-        # Insert data into the database
-        insert_data(date[-1], home_team[-1], score[-1], away_team[-1])
+    wait.until(EC.presence_of_element_located((By.XPATH, '//input[@enterkeyhint="search"]')))
 
-    # Check for the presence of a "Next" button for pagination
-    next_button = driver.find_element(By.XPATH, '//button[text()="Next"]')
-    if next_button.get_attribute("disabled") == "true":
-        break
-    else:
-        next_button.click()
+    search_input = browser.find_element(By.XPATH, '//input[@enterkeyhint="search"]')
+    search_input.send_keys('python')
+    search_input.send_keys(Keys.RETURN)
 
-driver.quit()
+    current_tweets = 0
+    user_data = []
+    text_data = []
+
+    while current_tweets < max_tweets:
+
+        for _ in range(5):
+            scroll_down(browser)
+
+        tweets = wait.until(EC.presence_of_all_elements_located((By.XPATH, '//article[@role="article"]')))
+        
+        for tweet in tweets:
+            try:
+                user = tweet.find_element(By.XPATH, './/span[contains(text(), "@")]').text
+                text = tweet.find_element(By.XPATH, ".//div[@lang]").text
+                tweets_data = [user, text]
+            except Exception as e:
+                print(f"Error extracting tweet: {e}")
+                tweets_data = ['user', 'text']
+
+            user_data.append(tweets_data[0])
+            text_data.append(" ".join(tweets_data[1].split()))
+
+            current_tweets += 1
+
+        print(f"Scraped {current_tweets} tweets")
+
+        if current_tweets >= max_tweets:
+            break
+
+    df = pd.DataFrame({'user': user_data, 'text': text_data})
+    df.to_csv('tweets.csv', index=False)
+    print(f"Total {current_tweets} tweets scraped")
