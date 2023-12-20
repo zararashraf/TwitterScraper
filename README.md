@@ -23,7 +23,7 @@ The Twitter Tweet Scraper is a Python-based project designed to extract tweets f
 2. Install the required libraries: `pip install selenium pandas`
 3. Set your Twitter username and password in the script.
 4. Customize the search query and maximum tweet count as needed.
-5. Run the script: `python twitter_tweet_scraper.py`
+5. Run the script: `python main.py`
 
 ## Code Repository
 You can access the source code for this project on [GitHub](https://github.com/zararashraf/TwitterScraper/blob/main/main.py).
