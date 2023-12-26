@@ -46,6 +46,7 @@ with webdriver.Firefox(options=options) as browser:
     current_tweets = 0
     user_data = []
     text_data = []
+    time_data = []
 
     while current_tweets < max_tweets:
 
@@ -58,13 +59,16 @@ with webdriver.Firefox(options=options) as browser:
             try:
                 user = tweet.find_element(By.XPATH, './/span[contains(text(), "@")]').text
                 text = tweet.find_element(By.XPATH, ".//div[@lang]").text
-                tweets_data = [user, text]
+                tweet_time = tweet.find_element(By.XPATH, ".//time").get_attribute("datetime")
+
+                tweets_data = [user, text, tweet_time]
             except Exception as e:
                 print(f"Error extracting tweet: {e}")
-                tweets_data = ['user', 'text']
+                tweets_data = ['user', 'text', "time"]
 
             user_data.append(tweets_data[0])
             text_data.append(" ".join(tweets_data[1].split()))
+            time_data.append(tweets_data[2])
 
             current_tweets += 1
 
@@ -73,6 +77,6 @@ with webdriver.Firefox(options=options) as browser:
         if current_tweets >= max_tweets:
             break
 
-    df = pd.DataFrame({'user': user_data, 'text': text_data})
+    df = pd.DataFrame({'user': user_data, 'text': text_data, 'time': time_data})
     df.to_csv('tweets.csv', index=False)
     print(f"Total {current_tweets} tweets scraped")
